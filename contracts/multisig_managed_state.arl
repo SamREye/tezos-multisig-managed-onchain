@@ -1,0 +1,132 @@
+archetype multisig_managed_state(
+  owner: address
+)
+
+/////////////////////////////////////////////////
+// Metadata support
+/////////////////////////////////////////////////
+
+entry set_metadata_uri(idata: bytes) {
+  called by owner
+  effect {
+    metadata := put(metadata, "", idata)
+  }
+}
+
+/////////////////////////////////////////////////
+// Multisig
+/////////////////////////////////////////////////
+
+states =
+| UnInitialized initial
+| Running
+
+variable signers: set<address> = []
+variable threshold: nat = 0
+
+transition initialize(the_signers: set<address>, the_threshold: nat) {
+  called by owner
+  from UnInitialized
+  to Running
+  when {
+    0 < the_threshold <= length(the_signers)
+  }
+  with effect {
+    signers := the_signers;
+    threshold := the_threshold
+  }
+}
+
+variable last_op_id: nat = 0
+asset pending_ops {
+  op_id: nat;
+  expiration: date;
+  actions: lambda<unit, list<operation>>;
+  approvals: set<address>;
+  executed: bool = false;
+}
+
+entry propose(
+  the_actions: lambda<unit, list<operation>>,
+  the_duration: duration,
+  is_caller_approved: bool
+) {
+  state is Running
+  require {
+    r01: signers.contains(caller) otherwise "ONLY FOR SIGNERS"
+  }
+  effect {
+    last_op_id += 1;
+    pending_ops.add({
+      op_id = last_op_id;
+      expiration = (now + the_duration);
+      actions = the_actions;
+      approvals = (is_caller_approved ? make_set<address>([caller]) : make_set<address>([]));
+      executed = false
+    })
+  }
+}
+
+event MSigOpReady {
+  pending_operation_id: nat
+}
+
+entry approve(
+  the_op_id: nat
+) {
+  state is Running
+  constant {
+    my_pending_op ?is pending_ops[the_op_id] otherwise "INVALID OP ID"
+  }
+  require {
+    r10: signers.contains(caller) otherwise "ONLY FOR SIGNERS";
+    r11: not my_pending_op.approvals.contains(caller) otherwise "ALREADY APPROVED";
+    r12: not my_pending_op.executed otherwise "ALREADY EXECUTED";
+    r13: my_pending_op.expiration > now otherwise "EXPIRED"
+  }
+  effect {
+    pending_ops[the_op_id].approvals.add(caller);
+    if length(my_pending_op.approvals) >= threshold then emit<MSigOpReady>({pending_operation_id = the_op_id})
+  }
+}
+
+entry execute(
+  the_op_id: nat
+) {
+  state is Running
+  constant {
+    my_pending_op ?is pending_ops[the_op_id] otherwise "INVALID OP ID"
+  }
+  require {
+    r20: signers.contains(caller) otherwise "ONLY FOR SIGNERS";
+    r21: length(my_pending_op.approvals) >= threshold otherwise "NOT YET APPROVED";
+    r22: not my_pending_op.executed otherwise "ALREADY EXECUTED"
+  }
+  effect {
+    operations := exec_lambda(pending_ops[the_op_id].actions, Unit);
+    pending_ops[the_op_id].executed := true
+  }
+}
+
+entry archive_finished_operations() {
+  state is Running
+  require {
+    r04: signers.contains(caller) otherwise "ONLY FOR SIGNERS"
+  }
+  effect {
+    var old_ids: set<nat> = [];
+    for my_pending_op_id in pending_ops do
+      var my_pending_op: asset_value<pending_ops> ?= pending_ops[my_pending_op_id];
+      if ((length(my_pending_op.approvals) < threshold) and (my_pending_op.expiration < now)) then old_ids.add(my_pending_op_id);
+      if (my_pending_op.executed) then old_ids.add(my_pending_op_id);
+    done;
+    for old_id in old_ids do
+      pending_ops.remove(old_id)
+    done
+  }
+}
+
+view get_approvals(my_op_id: nat): set<address> {
+  const my_pending_op: asset_value<pending_ops> ?= pending_ops[my_op_id]: "INVALID OP ID";
+  return my_pending_op.approvals
+}
