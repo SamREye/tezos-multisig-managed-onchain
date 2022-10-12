@@ -1,4 +1,4 @@
-# Multi-Signature with On-Chain Management
+# Multi-Signature with On-Chain Proposal State Management
 
 **author**: "Samuel Bourque" <samuel.bourque@nomadic-labs.com>
 
@@ -9,6 +9,15 @@ A Multi-Signature Contract behaves as a generalized treasury for holding assets,
 Real-world banking analogies are: a joint account for a couple, or a corporate account.
 
 A MultiSig is generally described by **M of N**; i.e. `M` number of signatures out required of `N` number of actors in order to approve an operation.
+
+# Differentiation
+
+What makes this wallet implementation distinct from others:
+
+ * approval is an on-chain event
+ * approval status is managed on-chain
+ * no changes in configuration are permitted, once initialized
+ * no additional features that wouldn't feature in a straightforward wallet (e.g. feeless)
 
 # When Does One Need a MutliSig?
 
