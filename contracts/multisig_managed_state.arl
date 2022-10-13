@@ -1,5 +1,7 @@
 archetype multisig_managed_state(
-  owner: address
+  owner: address,
+  signers: set<address>,
+  threshold: nat
 )
 
 /////////////////////////////////////////////////
@@ -17,26 +19,6 @@ entry set_metadata_uri(idata: bytes) {
 // Multisig
 /////////////////////////////////////////////////
 
-states =
-| UnInitialized initial
-| Running
-
-variable signers: set<address> = []
-variable threshold: nat = 0
-
-transition initialize(the_signers: set<address>, the_threshold: nat) {
-  called by owner
-  from UnInitialized
-  to Running
-  when {
-    0 < the_threshold <= length(the_signers)
-  }
-  with effect {
-    signers := the_signers;
-    threshold := the_threshold
-  }
-}
-
 variable last_op_id: nat = 0
 asset pending_ops to big_map {
   op_id: nat;
@@ -47,10 +29,8 @@ asset pending_ops to big_map {
 
 entry propose(
   the_actions: lambda<unit, list<operation>>,
-  the_duration: duration,
-  is_caller_approved: bool
+  the_duration: duration
 ) {
-  state is Running
   require {
     r01: signers.contains(caller) otherwise "ONLY FOR SIGNERS"
   }
@@ -60,7 +40,7 @@ entry propose(
       op_id = last_op_id;
       expiration = (now + the_duration);
       actions = the_actions;
-      approvals = (is_caller_approved ? make_set<address>([caller]) : make_set<address>([]))
+      approvals = make_set<address>([caller])
     })
   }
 }
@@ -68,7 +48,6 @@ entry propose(
 entry approve(
   the_op_id: nat
 ) {
-  state is Running
   constant {
     my_pending_op ?is pending_ops[the_op_id] otherwise "INVALID OP ID"
   }
@@ -85,7 +64,6 @@ entry approve(
 entry execute(
   the_op_id: nat
 ) {
-  state is Running
   constant {
     my_pending_op ?is pending_ops[the_op_id] otherwise "INVALID OP ID"
   }
@@ -100,7 +78,6 @@ entry execute(
 }
 
 entry archive_expired_operations(expired_op_ids: list<nat>) {
-  state is Running
   require {
     r30: signers.contains(caller) otherwise "ONLY FOR SIGNERS"
   }

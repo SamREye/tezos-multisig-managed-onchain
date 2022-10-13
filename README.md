@@ -36,48 +36,48 @@ Actors who participate in a MultiSig:
 ## Deployment
 
 pre-condition: no contract exists yet
-effect: initialized contract in the UnInitialized state
+effect: initialized contract
 
-1. Alice deploys the contract; identifying herself (or someone else if she chooses) as **Owner**
-
-## Initialization
-
-pre-condition: contract in the UnInitialized state
-effect: contract in the Running state 
-
-1. **Owner** initializes contract; with the following paramaters:
+1. Alice deploys the contract;  with the following paramaters:
+   * identifying herself (or someone else if she chooses) as **Owner**
    * signature threshold--i.e. how many signatures are required for a proposal to be considered approved
    * signers--the list of tz addresses for all actors who may sign
 
+## Setting Metadata
+
+pre-condition: contract exists
+effect: metadata is set 
+
+1. **Owner** initializes metadata using `set_metadata_uri`
+
 ## Smooth Operation
 
-pre-condition: contract in the Running state
-effect: operation `Op1` is injected 
+pre-condition: contract exists
+effect: operation is injected 
 assumes: 2 of 3 signature threshold
 
-1. Bob--a signer--proposes an operation `Op1` using the `propose` entry; he sets `the_duration` to `3d` and `is_caller_approved` to `true`
-1. Carl--another signer--approves on the next day Bob's proposed `Op1` operation using the `approve` entry
-1. Alice--another signer--executes the `Op1` operation using the `execute` entry
+1. Bob--a signer--proposes an operation `O1` using the `propose` entry; he sets `the_duration` to `3d`
+1. Carl--another signer--approves on the next day Bob's proposed `O1` operation using the `approve` entry
+1. Alice--another signer--executes the `O1` operation using the `execute` entry
 
 ## Expired Proposal
 
-pre-condition: contract in the Running state
+pre-condition: contract exists
 effect: operation `Op2` is not injected 
 assumes: 2 of 3 signature threshold
 
-1. Bob--a signer--proposes an operation `Op2` using the `propose` entry; he sets `the_duration` to `3d` and `is_caller_approved` to `true`
-1. Carl--another signer--approves, 4 days later, Bob's proposed `Op2` operation using the `approve` entry--fails with "EXPIRED"
-1. Alice--another signer--executes `Op2`--fails with "NOT YET APPROVED"
+1. Bob--a signer--proposes an operation `O1` using the `propose` entry; he sets `the_duration` to `3d`
+1. Carl--another signer--approves, 4 days later, Bob's proposed `O1` operation using the `approve` entry--fails with "EXPIRED"
+1. Alice--another signer--executes `01`--fails with "NOT YET APPROVED"
 
 ## Insufficient Signatures
 
-pre-condition: contract in the Running state
+pre-condition: contract exists
 effect: operation `Op3` is not injected 
 assumes: 2 of 3 signature threshold
 
-1. Bob--a signer--proposes an operation `Op3` using the `propose` entry; he sets `the_duration` to `3d` and `is_caller_approved` to `false`
-1. Carl--another signer--approves on the next day Bob's proposed `Op3` operation using the `approve` entry
-1. Alice--another signer--executes `Op3`--fails with "NOT YET APPROVED"
+1. Bob--a signer--proposes an operation `O1` using the `propose` entry; he sets `the_duration` to `3d`
+1. Alice--another signer--executes `01`--fails with "NOT YET APPROVED"
 
 # Restrictions
 
