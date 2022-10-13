@@ -52,8 +52,8 @@ entry approve(
     my_pending_op ?is pending_ops[the_op_id] otherwise "INVALID OP ID"
   }
   require {
-    r10: signers.contains(caller) otherwise "ONLY FOR SIGNERS";
-    r11: not my_pending_op.approvals.contains(caller) otherwise "ALREADY APPROVED";
+    r11: signers.contains(caller) otherwise "ONLY FOR SIGNERS";
+    r12: not my_pending_op.approvals.contains(caller) otherwise "ALREADY APPROVED";
     r13: my_pending_op.expiration > now otherwise "EXPIRED"
   }
   effect {
@@ -68,8 +68,8 @@ entry execute(
     my_pending_op ?is pending_ops[the_op_id] otherwise "INVALID OP ID"
   }
   require {
-    r20: signers.contains(caller) otherwise "ONLY FOR SIGNERS";
-    r21: length(my_pending_op.approvals) >= threshold otherwise "NOT YET APPROVED"
+    r21: signers.contains(caller) otherwise "ONLY FOR SIGNERS";
+    r22: length(my_pending_op.approvals) >= threshold otherwise "NOT YET APPROVED"
   }
   effect {
     operations := exec_lambda(pending_ops[the_op_id].actions, Unit);
@@ -79,7 +79,7 @@ entry execute(
 
 entry archive_expired_operations(expired_op_ids: list<nat>) {
   require {
-    r30: signers.contains(caller) otherwise "ONLY FOR SIGNERS"
+    r31: signers.contains(caller) otherwise "ONLY FOR SIGNERS"
   }
   effect {
     for expired_op_id in expired_op_ids do
