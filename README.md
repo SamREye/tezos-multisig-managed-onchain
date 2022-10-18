@@ -31,7 +31,6 @@ Actors who participate in a MultiSig:
 
  * owner: one who deploys the contract and initializes the contract's parameters--may or may not be a signer
  * signers: anyone with some degree of claim/right/authority to/over the assets contained/held within the MultiSig
- * anyone: can transfer assets to this contract
 
 ## Deployment
 
