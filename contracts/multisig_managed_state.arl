@@ -77,15 +77,17 @@ entry execute(
   }
 }
 
-entry archive_expired_operations(expired_op_ids: list<nat>) {
+entry archive_expired_operation(expired_op_id: nat) {
+  constant {
+    my_pending_op ?is pending_ops[expired_op_id] otherwise "INVALID OP ID"
+  }
   require {
-    r31: signers.contains(caller) otherwise "ONLY FOR SIGNERS"
+    r31: signers.contains(caller) otherwise "ONLY FOR SIGNERS";
+    r32: length(my_pending_op.approvals) < threshold otherwise "CANNOT ARCHIVE APPROVED OPERATION";
+    r33: my_pending_op.expiration < now otherwise "OPERATION NOT YET EXPIRED"
   }
   effect {
-    for expired_op_id in expired_op_ids do
-      if (pending_ops[expired_op_id].expiration < now) then pending_ops.remove(expired_op_id)
-      else fail("OP NOT YET EXPIRED")
-    done
+    pending_ops.remove(expired_op_id)
   }
 }
 
