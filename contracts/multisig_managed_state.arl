@@ -32,7 +32,8 @@ entry propose(
   the_duration: duration
 ) {
   require {
-    r01: signers.contains(caller) otherwise "ONLY FOR SIGNERS"
+    r01: signers.contains(caller) otherwise "ONLY FOR SIGNERS";
+    r02: the_duration > 0 otherwise "EXPIRED"
   }
   effect {
     last_op_id += 1;
