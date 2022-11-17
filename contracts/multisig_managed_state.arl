@@ -33,7 +33,8 @@ entry propose(
 ) {
   require {
     r01: signers.contains(caller) otherwise "ONLY FOR SIGNERS";
-    r02: the_duration > 0 otherwise "EXPIRED"
+    r02: the_duration > 0 otherwise "EXPIRED";
+    r03: transferred = 0utz otherwise "TO DEPOSIT ASSETS, PLEASE USE THE DEFAULT ENTRYPOINT"
   }
   effect {
     last_op_id += 1;
@@ -55,7 +56,8 @@ entry approve(
   require {
     r11: signers.contains(caller) otherwise "ONLY FOR SIGNERS";
     r12: not my_pending_op.approvals.contains(caller) otherwise "ALREADY APPROVED";
-    r13: my_pending_op.expiration > now otherwise "EXPIRED"
+    r13: my_pending_op.expiration > now otherwise "EXPIRED";
+    r14: transferred = 0utz otherwise "TO DEPOSIT ASSETS, PLEASE USE THE DEFAULT ENTRYPOINT"
   }
   effect {
     pending_ops[the_op_id].approvals.add(caller);
@@ -70,7 +72,8 @@ entry execute(
   }
   require {
     r21: signers.contains(caller) otherwise "ONLY FOR SIGNERS";
-    r22: length(my_pending_op.approvals) >= threshold otherwise "NOT YET APPROVED"
+    r22: length(my_pending_op.approvals) >= threshold otherwise "NOT YET APPROVED";
+    r23: transferred = 0utz otherwise "TO DEPOSIT ASSETS, PLEASE USE THE DEFAULT ENTRYPOINT"
   }
   effect {
     operations := exec_lambda(pending_ops[the_op_id].actions, Unit);
@@ -85,10 +88,20 @@ entry archive_expired_operation(expired_op_id: nat) {
   require {
     r31: signers.contains(caller) otherwise "ONLY FOR SIGNERS";
     r32: length(my_pending_op.approvals) < threshold otherwise "CANNOT ARCHIVE APPROVED OPERATION";
-    r33: my_pending_op.expiration < now otherwise "OPERATION NOT YET EXPIRED"
+    r33: my_pending_op.expiration < now otherwise "OPERATION NOT YET EXPIRED";
+    r34: transferred = 0utz otherwise "TO DEPOSIT ASSETS, PLEASE USE THE DEFAULT ENTRYPOINT"
   }
   effect {
     pending_ops.remove(expired_op_id)
+  }
+}
+
+entry default() {
+  require {
+    r41: length(signers) >= threshold otherwise "CONTRACT IS LOCKED BECAUSE THERE ARE NOT ENOUGH SIGNERS"
+  }
+  effect {
+     ()
   }
 }
 

@@ -49,6 +49,13 @@ effect: metadata is set
 
 1. **Owner** initializes metadata using `set_metadata_uri`
 
+## Funding the MultiSig contract
+
+pre-condition: contract exists
+effect: contract's balance increases
+
+1. Dany--who may or not be a signer--funds the MultiSig contract using the `default` entry
+
 ## Smooth Operation
 
 pre-condition: contract exists
