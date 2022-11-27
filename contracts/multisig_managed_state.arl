@@ -22,31 +22,27 @@ entry set_metadata_uri(idata: bytes) {
 variable last_op_id: nat = 0
 asset pending_ops to big_map {
   op_id: nat;
-  expiration: date;
   actions: lambda<unit, list<operation>>;
   approvals: set<address>
 }
 
 entry default() {
   require {
-    r00: length(signers) >= threshold otherwise "FUNDING BLOCKED SINCE PARAMS ARE INVALID"
+    r00: length(signers) >= threshold otherwise "FUNDING BLOCKED SINCE PARAMS ARE INVALID";
   }
 }
 
 entry propose(
-  the_actions: lambda<unit, list<operation>>,
-  the_duration: duration
+  the_actions: lambda<unit, list<operation>>
 ) {
   require {
-    r01: signers.contains(caller) otherwise "ONLY FOR SIGNERS";
-    r02: the_duration > 0 otherwise "EXPIRED";
-    r03: transferred = 0utz otherwise "TO FUND CONTRACT, PLEASE USE THE DEFAULT ENTRYPOINT"
+    r10: transferred = 0utz otherwise "TO FUND CONTRACT, PLEASE USE THE DEFAULT ENTRYPOINT";
+    r11: signers.contains(caller) otherwise "ONLY FOR SIGNERS";
   }
   effect {
     last_op_id += 1;
     pending_ops.add({
       op_id = last_op_id;
-      expiration = (now + the_duration);
       actions = the_actions;
       approvals = make_set<address>([caller])
     })
@@ -60,10 +56,9 @@ entry approve(
     my_pending_op ?is pending_ops[the_op_id] otherwise "INVALID OP ID"
   }
   require {
-    r11: signers.contains(caller) otherwise "ONLY FOR SIGNERS";
-    r12: not my_pending_op.approvals.contains(caller) otherwise "ALREADY APPROVED";
-    r13: my_pending_op.expiration > now otherwise "EXPIRED";
-    r14: transferred = 0utz otherwise "TO FUND CONTRACT, PLEASE USE THE DEFAULT ENTRYPOINT"
+    r20: transferred = 0utz otherwise "TO FUND CONTRACT, PLEASE USE THE DEFAULT ENTRYPOINT";
+    r21: signers.contains(caller) otherwise "ONLY FOR SIGNERS";
+    r22: not my_pending_op.approvals.contains(caller) otherwise "ALREADY APPROVED";
   }
   effect {
     pending_ops[the_op_id].approvals.add(caller);
@@ -77,9 +72,9 @@ entry execute(
     my_pending_op ?is pending_ops[the_op_id] otherwise "INVALID OP ID"
   }
   require {
-    r21: signers.contains(caller) otherwise "ONLY FOR SIGNERS";
-    r22: length(my_pending_op.approvals) >= threshold otherwise "NOT YET APPROVED";
-    r23: transferred = 0utz otherwise "TO FUND CONTRACT, PLEASE USE THE DEFAULT ENTRYPOINT"
+    r30: transferred = 0utz otherwise "TO FUND CONTRACT, PLEASE USE THE DEFAULT ENTRYPOINT";
+    r31: signers.contains(caller) otherwise "ONLY FOR SIGNERS";
+    r32: length(my_pending_op.approvals) >= threshold otherwise "NOT YET APPROVED";
   }
   effect {
     operations := exec_lambda(pending_ops[the_op_id].actions, Unit);
@@ -87,21 +82,12 @@ entry execute(
   }
 }
 
-entry archive_expired_operation(expired_op_id: nat) {
-  constant {
-    my_pending_op ?is pending_ops[expired_op_id] otherwise "INVALID OP ID"
-  }
-  require {
-    r31: signers.contains(caller) otherwise "ONLY FOR SIGNERS";
-    r32: length(my_pending_op.approvals) < threshold otherwise "CANNOT ARCHIVE APPROVED OPERATION";
-    r33: my_pending_op.expiration < now otherwise "OPERATION NOT YET EXPIRED";
-    r34: transferred = 0utz otherwise "TO FUND CONTRACT, PLEASE USE THE DEFAULT ENTRYPOINT"
-  }
-  effect {
-    pending_ops.remove(expired_op_id)
-  }
-}
-
 view get_approvals(my_op_id: nat): set<address> {
   return match pending_ops[my_op_id] with | none -> make_set<address>([]) | some(v) -> v.approvals end
+}
+
+view is_approved(my_op_id: nat): bool {
+  const approval_count: nat = match pending_ops[my_op_id] with | none -> 0 | some(v) -> length(v.approvals) end;
+  const is_approved: bool = approval_count >= threshold;
+  return is_approved
 }
