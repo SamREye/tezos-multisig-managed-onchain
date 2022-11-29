@@ -10,6 +10,9 @@ archetype multisig_managed_state(
 
 entry set_metadata_uri(idata: bytes) {
   called by owner
+  require {
+    r000: transferred = 0utz otherwise "TO FUND CONTRACT, PLEASE USE THE DEFAULT ENTRYPOINT"
+  }
   effect {
     metadata := put(metadata, "", idata)
   }
