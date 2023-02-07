@@ -66,16 +66,6 @@ assumes: 2 of 3 signature threshold
 1. Carl--another signer--approves on the next day Bob's proposed `O1` operation using the `approve` entry
 1. Alice--another signer--executes the `O1` operation using the `execute` entry
 
-## Expired Proposal
-
-pre-condition: contract exists
-effect: operation `Op2` is not injected 
-assumes: 2 of 3 signature threshold
-
-1. Bob--a signer--proposes an operation `O1` using the `propose` entry; he sets `the_duration` to `3d`
-1. Carl--another signer--approves, 4 days later, Bob's proposed `O1` operation using the `approve` entry--fails with "EXPIRED"
-1. Alice--another signer--executes `01`--fails with "NOT YET APPROVED"
-
 ## Insufficient Signatures
 
 pre-condition: contract exists
